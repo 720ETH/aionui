@@ -880,13 +880,127 @@ const migration_v15: IMigration = {
 };
 
 /**
+ * Migration v15 -> v16: Add correlation engine tables
+ * Self-learning event-market correlation system
+ */
+const migration_v16: IMigration = {
+  version: 16,
+  name: 'Add correlation engine tables',
+  up: (db) => {
+    // Market events — logged events (earnings, news, macro, policy, sector)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS market_events (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        event_type TEXT NOT NULL CHECK(event_type IN ('earnings', 'news', 'macro', 'policy', 'sector', 'technical', 'other')),
+        title TEXT NOT NULL,
+        description TEXT,
+        tickers TEXT NOT NULL,
+        sector TEXT,
+        source TEXT,
+        severity INTEGER NOT NULL DEFAULT 3 CHECK(severity BETWEEN 1 AND 5),
+        occurred_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_market_events_user_id ON market_events(user_id);
+      CREATE INDEX IF NOT EXISTS idx_market_events_event_type ON market_events(event_type);
+      CREATE INDEX IF NOT EXISTS idx_market_events_sector ON market_events(sector);
+      CREATE INDEX IF NOT EXISTS idx_market_events_occurred_at ON market_events(occurred_at DESC);
+    `);
+
+    // Event outcomes — actual market impact measured after an event
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS event_outcomes (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL,
+        ticker TEXT NOT NULL,
+        price_before REAL NOT NULL,
+        price_after REAL NOT NULL,
+        percent_change REAL NOT NULL,
+        measured_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (event_id) REFERENCES market_events(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_event_outcomes_event_id ON event_outcomes(event_id);
+      CREATE INDEX IF NOT EXISTS idx_event_outcomes_ticker ON event_outcomes(ticker);
+    `);
+
+    // Correlation rules — learned rules with Bayesian-updated weights
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS correlation_rules (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        sector TEXT,
+        ticker TEXT,
+        direction TEXT NOT NULL CHECK(direction IN ('bullish', 'bearish', 'neutral')),
+        avg_impact REAL NOT NULL DEFAULT 0,
+        weight REAL NOT NULL DEFAULT 0.5,
+        sample_count INTEGER NOT NULL DEFAULT 0,
+        hit_count INTEGER NOT NULL DEFAULT 0,
+        miss_count INTEGER NOT NULL DEFAULT 0,
+        last_updated INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_correlation_rules_user_id ON correlation_rules(user_id);
+      CREATE INDEX IF NOT EXISTS idx_correlation_rules_event_type ON correlation_rules(event_type);
+      CREATE INDEX IF NOT EXISTS idx_correlation_rules_sector ON correlation_rules(sector);
+      CREATE INDEX IF NOT EXISTS idx_correlation_rules_ticker ON correlation_rules(ticker);
+      CREATE INDEX IF NOT EXISTS idx_correlation_rules_weight ON correlation_rules(weight DESC);
+    `);
+
+    // Predictions — predictions made by the engine, tracked for accuracy
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS predictions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        event_id TEXT NOT NULL,
+        ticker TEXT NOT NULL,
+        predicted_direction TEXT NOT NULL CHECK(predicted_direction IN ('bullish', 'bearish', 'neutral')),
+        predicted_impact REAL NOT NULL,
+        confidence REAL NOT NULL,
+        actual_direction TEXT CHECK(actual_direction IN ('bullish', 'bearish', 'neutral')),
+        actual_impact REAL,
+        is_correct INTEGER,
+        created_at INTEGER NOT NULL,
+        verified_at INTEGER,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id) REFERENCES market_events(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON predictions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_predictions_event_id ON predictions(event_id);
+      CREATE INDEX IF NOT EXISTS idx_predictions_ticker ON predictions(ticker);
+      CREATE INDEX IF NOT EXISTS idx_predictions_is_correct ON predictions(is_correct);
+      CREATE INDEX IF NOT EXISTS idx_predictions_created_at ON predictions(created_at DESC);
+    `);
+
+    console.log('[Migration v16] Added correlation engine tables');
+  },
+  down: (db) => {
+    db.exec(`
+      DROP TABLE IF EXISTS predictions;
+      DROP TABLE IF EXISTS correlation_rules;
+      DROP TABLE IF EXISTS event_outcomes;
+      DROP TABLE IF EXISTS market_events;
+    `);
+    console.log('[Migration v16] Rolled back: Removed correlation engine tables');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
 export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
-  migration_v13, migration_v14, migration_v15,
+  migration_v13, migration_v14, migration_v15, migration_v16,
 ];
 
 /**

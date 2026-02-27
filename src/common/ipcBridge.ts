@@ -422,6 +422,123 @@ export interface ICreateStockAgentParams {
   enabled?: boolean;
 }
 
+// Self-learning correlation engine API / 自学习事件-市场相关性引擎接口
+export type MarketEventType = 'earnings' | 'news' | 'macro' | 'policy' | 'sector' | 'technical' | 'other';
+export type CorrelationDirection = 'bullish' | 'bearish' | 'neutral';
+
+export interface IMarketEvent {
+  id: string;
+  userId: string;
+  eventType: MarketEventType;
+  title: string;
+  description?: string;
+  tickers: string[];
+  sector?: string;
+  source?: string;
+  severity: number;
+  occurredAt: number;
+  createdAt: number;
+  outcomeCount?: number;
+}
+
+export interface IEventOutcome {
+  id: string;
+  eventId: string;
+  ticker: string;
+  priceBefore: number;
+  priceAfter: number;
+  percentChange: number;
+  measuredAt: number;
+  createdAt: number;
+}
+
+export interface ICorrelationRule {
+  id: string;
+  userId: string;
+  eventType: MarketEventType;
+  sector?: string;
+  ticker?: string;
+  direction: CorrelationDirection;
+  avgImpact: number;
+  weight: number;
+  sampleCount: number;
+  hitCount: number;
+  missCount: number;
+  lastUpdated: number;
+  createdAt: number;
+}
+
+export interface IPrediction {
+  id: string;
+  userId: string;
+  eventId: string;
+  ticker: string;
+  predictedDirection: CorrelationDirection;
+  predictedImpact: number;
+  confidence: number;
+  actualDirection?: CorrelationDirection;
+  actualImpact?: number;
+  isCorrect?: boolean;
+  createdAt: number;
+  verifiedAt?: number;
+}
+
+export interface ICorrelationStats {
+  totalEvents: number;
+  totalPredictions: number;
+  verifiedPredictions: number;
+  accuracy: number;
+  topRules: ICorrelationRule[];
+  recentAccuracy: number;
+}
+
+export interface ICreateMarketEventParams {
+  eventType: MarketEventType;
+  title: string;
+  description?: string;
+  tickers: string[];
+  sector?: string;
+  source?: string;
+  severity: number;
+  occurredAt: number;
+}
+
+export interface IRecordOutcomeParams {
+  eventId: string;
+  ticker: string;
+  priceBefore: number;
+  priceAfter: number;
+  measuredAt: number;
+}
+
+export interface IVerifyPredictionParams {
+  predictionId: string;
+  actualDirection: CorrelationDirection;
+  actualImpact: number;
+}
+
+export const correlation = {
+  // Events
+  listEvents: bridge.buildProvider<IMarketEvent[], { limit?: number; eventType?: MarketEventType }>('correlation.list-events'),
+  createEvent: bridge.buildProvider<IMarketEvent, ICreateMarketEventParams>('correlation.create-event'),
+  deleteEvent: bridge.buildProvider<void, { id: string }>('correlation.delete-event'),
+  // Outcomes
+  recordOutcome: bridge.buildProvider<IEventOutcome, IRecordOutcomeParams>('correlation.record-outcome'),
+  listOutcomes: bridge.buildProvider<IEventOutcome[], { eventId: string }>('correlation.list-outcomes'),
+  // Rules (learned)
+  listRules: bridge.buildProvider<ICorrelationRule[], { minWeight?: number; eventType?: MarketEventType; ticker?: string }>('correlation.list-rules'),
+  recalculateRules: bridge.buildProvider<{ rulesUpdated: number }, void>('correlation.recalculate-rules'),
+  // Predictions
+  generatePredictions: bridge.buildProvider<IPrediction[], { eventId: string }>('correlation.generate-predictions'),
+  listPredictions: bridge.buildProvider<IPrediction[], { limit?: number; verifiedOnly?: boolean }>('correlation.list-predictions'),
+  verifyPrediction: bridge.buildProvider<IPrediction, IVerifyPredictionParams>('correlation.verify-prediction'),
+  // Stats
+  getStats: bridge.buildProvider<ICorrelationStats, void>('correlation.get-stats'),
+  // Real-time events
+  onRuleUpdated: bridge.buildEmitter<ICorrelationRule>('correlation.rule-updated'),
+  onPredictionVerified: bridge.buildEmitter<IPrediction>('correlation.prediction-verified'),
+};
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;

@@ -5,18 +5,24 @@
  */
 
 import type { IStockAgent, ICreateStockAgentParams } from '@/common/ipcBridge';
-import { Button, Empty, Message, Spin } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { Button, Empty, Message, Radio, Spin } from '@arco-design/web-react';
+import { ChartLine, Plus, TrendingUp } from '@icon-park/react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import CorrelationPanel from './components/CorrelationPanel';
 import StockAgentCard from './components/StockAgentCard';
 import StockAgentForm from './components/StockAgentForm';
 import StockReportDrawer from './components/StockReportDrawer';
 import { useStockAgents } from './hooks/useStockAgents';
 
+type PageView = 'agents' | 'correlation';
+
 const StockAgentsPage: React.FC = () => {
   const { t } = useTranslation();
   const { agents, loading, createAgent, updateAgent, deleteAgent, runAgent } = useStockAgents();
+
+  // View toggle
+  const [view, setView] = useState<PageView>('agents');
 
   // Form drawer state
   const [formVisible, setFormVisible] = useState(false);
@@ -93,13 +99,29 @@ const StockAgentsPage: React.FC = () => {
             <h1 className='text-24px font-bold text-t-primary m-0'>{t('stockAgent.page.title')}</h1>
             <p className='text-14px text-t-secondary mt-4px mb-0'>{t('stockAgent.page.subtitle')}</p>
           </div>
-          <Button type='primary' icon={<Plus theme='outline' size={16} />} onClick={handleCreate}>
-            {t('common.create')}
-          </Button>
+          <div className='flex items-center gap-12px'>
+            <Radio.Group value={view} onChange={(v) => setView(v as PageView)} type='button' size='small'>
+              <Radio value='agents'>
+                <ChartLine theme='outline' size={14} className='mr-4px' />
+                {t('correlation.view.agents')}
+              </Radio>
+              <Radio value='correlation'>
+                <TrendingUp theme='outline' size={14} className='mr-4px' />
+                {t('correlation.view.correlation')}
+              </Radio>
+            </Radio.Group>
+            {view === 'agents' && (
+              <Button type='primary' icon={<Plus theme='outline' size={16} />} onClick={handleCreate}>
+                {t('common.create')}
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Agent list */}
-        {agents.length === 0 ? (
+        {/* Content */}
+        {view === 'correlation' ? (
+          <CorrelationPanel />
+        ) : agents.length === 0 ? (
           <div className='py-80px'>
             <Empty
               description={
