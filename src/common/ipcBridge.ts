@@ -372,6 +372,56 @@ export interface ICreateCronJobParams {
   createdBy: 'user' | 'agent';
 }
 
+// Stock research agent management API / 股票研究 Agent 管理接口
+export const stockAgent = {
+  // Query
+  list: bridge.buildProvider<IStockAgent[], void>('stockAgent.list'),
+  get: bridge.buildProvider<IStockAgent | null, { id: string }>('stockAgent.get'),
+  // CRUD
+  create: bridge.buildProvider<IStockAgent, ICreateStockAgentParams>('stockAgent.create'),
+  update: bridge.buildProvider<IStockAgent, { id: string; updates: Partial<ICreateStockAgentParams> }>('stockAgent.update'),
+  remove: bridge.buildProvider<void, { id: string }>('stockAgent.remove'),
+  // Reports
+  listReports: bridge.buildProvider<IStockReport[], { agentId: string }>('stockAgent.list-reports'),
+  createReport: bridge.buildProvider<IStockReport, { agentId: string }>('stockAgent.create-report'),
+  updateReport: bridge.buildProvider<IStockReport, { id: string; updates: Partial<IStockReport> }>('stockAgent.update-report'),
+  // Events
+  onAgentUpdated: bridge.buildEmitter<IStockAgent>('stockAgent.agent-updated'),
+  onReportCreated: bridge.buildEmitter<IStockReport>('stockAgent.report-created'),
+};
+
+export interface IStockAgent {
+  id: string;
+  userId: string;
+  name: string;
+  tickers: string[];
+  prompt: string;
+  scheduleCron?: string;
+  enabled: boolean;
+  reportCount: number;
+  lastRunAt?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface IStockReport {
+  id: string;
+  agentId: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  summary?: string;
+  rawContent?: string;
+  errorMessage?: string;
+  createdAt: number;
+}
+
+export interface ICreateStockAgentParams {
+  name: string;
+  tickers: string[];
+  prompt: string;
+  scheduleCron?: string;
+  enabled?: boolean;
+}
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;

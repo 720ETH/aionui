@@ -826,13 +826,67 @@ const migration_v14: IMigration = {
 };
 
 /**
+ * Migration v14 -> v15: Add stock_agents and stock_reports tables
+ * Stock research agent management feature
+ */
+const migration_v15: IMigration = {
+  version: 15,
+  name: 'Add stock_agents and stock_reports tables',
+  up: (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS stock_agents (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        tickers TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        schedule_cron TEXT,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_stock_agents_user_id ON stock_agents(user_id);
+      CREATE INDEX IF NOT EXISTS idx_stock_agents_enabled ON stock_agents(enabled);
+    `);
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS stock_reports (
+        id TEXT PRIMARY KEY,
+        agent_id TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'done', 'error')),
+        summary TEXT,
+        raw_content TEXT,
+        error_message TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (agent_id) REFERENCES stock_agents(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_stock_reports_agent_id ON stock_reports(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_stock_reports_created_at ON stock_reports(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_stock_reports_status ON stock_reports(status);
+    `);
+
+    console.log('[Migration v15] Added stock_agents and stock_reports tables');
+  },
+  down: (db) => {
+    db.exec(`
+      DROP TABLE IF EXISTS stock_reports;
+      DROP TABLE IF EXISTS stock_agents;
+    `);
+    console.log('[Migration v15] Rolled back: Removed stock_agents and stock_reports tables');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
 export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
-  migration_v13, migration_v14,
+  migration_v13, migration_v14, migration_v15,
 ];
 
 /**
