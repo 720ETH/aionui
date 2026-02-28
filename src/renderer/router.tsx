@@ -13,7 +13,6 @@ import SystemSettings from './pages/settings/SystemSettings';
 import ToolsSettings from './pages/settings/ToolsSettings';
 import WebuiSettings from './pages/settings/WebuiSettings';
 import LoginPage from './pages/login';
-import StockAgentsPage from './pages/stockAgents';
 import ComponentsShowcase from './pages/test/ComponentsShowcase';
 
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
@@ -50,7 +49,6 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/about' element={<About />} />
           <Route path='/settings/tools' element={<ToolsSettings />} />
           <Route path='/settings' element={<Navigate to='/settings/gemini' replace />} />
-          <Route path='/stock-agents' element={<StockAgentsPage />} />
           <Route path='/test/components' element={<ComponentsShowcase />} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
