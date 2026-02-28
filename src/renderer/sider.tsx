@@ -1,4 +1,4 @@
-import { ArrowCircleLeft, ChartLine, Plus, SettingTwo } from '@icon-park/react';
+import { ArrowCircleLeft, Plus, SettingTwo } from '@icon-park/react';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -73,25 +73,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <WorkspaceGroupedHistory collapsed={collapsed} onSessionClick={onSessionClick}></WorkspaceGroupedHistory>
           </div>
         )}
-      </div>
-      {/* Stock Research nav */}
-      <div className='shrink-0 px-4px mb-4px'>
-        <Tooltip disabled={!collapsed} content={t('stockAgent.nav.title')} position='right'>
-          <div
-            className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem cursor-pointer'
-            onClick={() => {
-              Promise.resolve(navigate('/stock-agents')).catch((error) => {
-                console.error('Navigation failed:', error);
-              });
-              if (onSessionClick) {
-                onSessionClick();
-              }
-            }}
-          >
-            <ChartLine theme='outline' size='24' fill={iconColors.primary} className='flex' />
-            <span className='collapsed-hidden text-t-primary'>{t('stockAgent.nav.title')}</span>
-          </div>
-        </Tooltip>
       </div>
       {/* Footer - settings button */}
       <div className='shrink-0 sider-footer'>
